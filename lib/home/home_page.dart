@@ -17,6 +17,8 @@ class _HomePageState extends State<HomePage> {
   late DateTime _now;
   Timer? _timer;
 
+  double currentSpeed = 54;
+
   @override
   void initState() {
     super.initState();
@@ -55,7 +57,7 @@ class _HomePageState extends State<HomePage> {
                 height: designSize.height,
                 child: _DashboardView(
                   gear: 6,
-                  speed: 54,
+                  speed: currentSpeed.round(),
                   rideKm: 3.6,
                   odoKm: 2495.2,
                   rangeKm: 137,
@@ -65,6 +67,8 @@ class _HomePageState extends State<HomePage> {
                   modeLabel: 'ATTACK',
                   regenLabel: 'REGEN',
                   timeText: timeText,
+                  currentSpeed: currentSpeed,
+                  onSpeedChanged: (v) => setState(() => currentSpeed = v),
                 ),
               ),
             ),
@@ -94,6 +98,8 @@ class _DashboardView extends StatelessWidget {
     required this.modeLabel,
     required this.regenLabel,
     required this.timeText,
+    required this.currentSpeed,
+    required this.onSpeedChanged,
   });
 
   final int gear;
@@ -107,6 +113,8 @@ class _DashboardView extends StatelessWidget {
   final String modeLabel;
   final String regenLabel;
   final String timeText;
+  final double currentSpeed;
+  final ValueChanged<double> onSpeedChanged;
 
   static const _green = Color(0xFF33FF33);
   static const _panelText = Color(0xFFB8B8B8);
@@ -552,33 +560,111 @@ class _DashboardView extends StatelessWidget {
         height: 75,
         child: ClipPath(
           clipper: const _HudTopStripClipper(),
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Color(0xFF2A0000),
-                  Color(0xFF8C0000),
-                  Color(0xFFFF1A1A),
-                  Color(0xFF8C0000),
-                  Color(0xFF050505),
-                  Color(0xFF9A9A9A),
-                ],
-                stops: [0.0, 0.25, 0.38, 0.52, 0.78, 1.0],
-              ),
-            ),
-            foregroundDecoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0x66FFFFFF), // top highlight
-                  Color(0x00FFFFFF),
-                ],
-                stops: [0.0, 0.3],
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final w = constraints.maxWidth;
+              final normalized = (currentSpeed / 160).clamp(0.0, 1.0);
+              final filledW = w * normalized;
+
+              void setFromDx(double dx) {
+                final n = (dx / w).clamp(0.0, 1.0);
+                final v = (n * 160).clamp(0.0, 160.0);
+                onSpeedChanged(v);
+              }
+
+              return GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragDown: (d) => setFromDx(d.localPosition.dx),
+                onHorizontalDragUpdate: (d) => setFromDx(d.localPosition.dx),
+                onTapDown: (d) => setFromDx(d.localPosition.dx),
+                child: Stack(
+                  children: [
+                    // Inactive (right side): grey/black gradient.
+                    Positioned.fill(
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Color(0xFF050505),
+                              Color(0xFF1A1A1A),
+                              Color(0xFF3A3A3A),
+                              Color(0xFF9A9A9A),
+                            ],
+                            stops: [0.0, 0.45, 0.8, 1.0],
+                          ),
+                        ),
+                        foregroundDecoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0x44FFFFFF), // subtle top highlight
+                              Color(0x00FFFFFF),
+                            ],
+                            stops: [0.0, 0.35],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Active (left side): red gradient up to current speed.
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 80),
+                      curve: Curves.easeOut,
+                      width: filledW,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Color(0xFF2A0000),
+                              Color(0xFF8C0000),
+                              Color(0xFFFF1A1A),
+                              Color(0xFF8C0000),
+                              Color(0xFF2A0000),
+                            ],
+                            stops: [0.0, 0.30, 0.55, 0.78, 1.0],
+                          ),
+                        ),
+                        foregroundDecoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0x66FFFFFF), // top highlight
+                              Color(0x00FFFFFF),
+                            ],
+                            stops: [0.0, 0.3],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Knob indicator.
+                    Positioned(
+                      left: (filledW - 6).clamp(0.0, w - 12),
+                      top: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 12,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF1A1A).withValues(alpha: 0.65),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF1A1A).withValues(alpha: 0.35),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
