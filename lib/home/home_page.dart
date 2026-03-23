@@ -403,11 +403,19 @@ class _DashboardView extends StatelessWidget {
             const SizedBox(width: 18),
 
             /// SPEED
-            _metallicText(
-              speedText,
-              fontSize: 170,
-              fontWeight: FontWeight.w600,
-              skew: -0.15,
+            // FIX: Placed inside a fixed-width SizedBox so the Row never changes width.
+            // This locks the Gear and KM/H text completely in place.
+            SizedBox(
+              width: 380, 
+              child: Align(
+                alignment: Alignment.center,
+                child: _metallicText(
+                  speedText,
+                  fontSize: 170,
+                  fontWeight: FontWeight.w600,
+                  skew: -0.15,
+                ),
+              ),
             ),
 
             const SizedBox(width: 8),
