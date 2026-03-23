@@ -81,10 +81,7 @@ class _HomePageState extends State<HomePage> {
 
     final rawValue = int.tryParse(parts[byteStart], radix: 16);
     if (rawValue != null && mounted) {
-      // FIX: Your hardware is already sending a 0-199 value!
-      // We just take the raw value, clamp it to 199 to be safe, and pass it in.
       double finalSpeed = rawValue.toDouble().clamp(0.0, 199.0);
-      
       _updateSpeed(finalSpeed);
     }
   }
@@ -375,10 +372,7 @@ class _DashboardView extends StatelessWidget {
   }
 
   Widget _speedCluster() {
-    // Pad to exactly 3 characters so we always have hundreds, tens, and units
     final speedText = speed.toString().padLeft(3, '0');
-    
-    // Extract individual digits
     final digit1 = speedText[0];
     final digit2 = speedText[1];
     final digit3 = speedText[2];
@@ -394,7 +388,6 @@ class _DashboardView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            /// GEAR
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
@@ -410,9 +403,7 @@ class _DashboardView extends StatelessWidget {
             ),
             const SizedBox(width: 18),
 
-            /// SPEED (Locked Fixed-Width Box)
             SizedBox(
-              // Expanded width to accommodate the wider individual digit boxes
               width: 420,
               height: 180, 
               child: Row(
@@ -428,7 +419,6 @@ class _DashboardView extends StatelessWidget {
 
             const SizedBox(width: 8),
 
-            /// KM/H
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
@@ -447,10 +437,8 @@ class _DashboardView extends StatelessWidget {
     );
   }
 
-  // Helper widget to lock a single digit into a specific width
   Widget _singleDigitBox(String digit) {
     return SizedBox(
-      // Increased width from 120 to 135 to give the characters more breathing room
       width: 135, 
       child: Center(
         child: _metallicText(
@@ -511,7 +499,6 @@ class _DashboardView extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// RANGE BAR
           ClipPath(
             clipper: _RangeBarClipper(),
             child: Container(
@@ -538,11 +525,9 @@ class _DashboardView extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          /// RANGE + BATTERY PANEL
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// RANGE LABEL
               Text(
                 "RANGE",
                 style: TextStyle(
@@ -553,7 +538,6 @@ class _DashboardView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              /// RANGE VALUE
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -581,7 +565,6 @@ class _DashboardView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              /// BATTERY LABEL
               Text(
                 "BATTERY",
                 style: TextStyle(
@@ -592,7 +575,6 @@ class _DashboardView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              /// BATTERY VALUE
               Row(
                 children: [
                   const Icon(Icons.bolt, color: _green, size: 22),
@@ -627,8 +609,8 @@ class _DashboardView extends StatelessWidget {
             builder: (context, constraints) {
               final w = constraints.maxWidth;
               
-              // Capped at 199 
-              final normalized = (speed / 199).clamp(0.0, 1.0); 
+              // FIX: Scaled by 0.92 so the color fills exactly to the clipped edge at 199
+              final normalized = (speed / 199).clamp(0.0, 1.0) * 0.92; 
               
               final filledW = w * normalized;
 
@@ -732,7 +714,6 @@ class _DashboardView extends StatelessWidget {
         height: 70,
         child: Stack(
           children: [
-            /// SMALL REGEN PLATE
             Positioned(
               right: 195,
               bottom: 30,
@@ -759,7 +740,6 @@ class _DashboardView extends StatelessWidget {
                 ),
               ),
             ),
-            /// BOTTOM CONTENT ROW
             Positioned(
               left: 0,
               right: 120,
@@ -767,7 +747,6 @@ class _DashboardView extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  /// EFF
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -801,13 +780,11 @@ class _DashboardView extends StatelessWidget {
                     ],
                   ),
                   const Spacer(),
-                  /// ATTACK BUTTON
                   Padding(
                     padding: const EdgeInsets.only(bottom: 30),
                     child: _attackButton(modeLabel),
                   ),
                   const Spacer(),
-                  /// REGEN
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Text(
@@ -821,7 +798,6 @@ class _DashboardView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 40),
-                  /// WARNING ICON
                   const Padding(
                     padding: EdgeInsets.only(bottom: 4),
                     child: Icon(
