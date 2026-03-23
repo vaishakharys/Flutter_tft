@@ -79,10 +79,24 @@ class _HomePageState extends State<HomePage> {
     }
     if (byteStart < 0 || byteStart >= parts.length) return;
 
-    final speed = int.tryParse(parts[byteStart], radix: 16);
-    if (speed != null && mounted) {
-      // Pass the raw value to our new smoothing function
-      _updateSpeed(speed.toDouble());
+    // 1. Get the raw value from the CAN bus
+    final rawValue = int.tryParse(parts[byteStart], radix: 16);
+    if (rawValue != null && mounted) {
+      
+      // --- POTENTIOMETER CALIBRATION ---
+      // If the speed still maxes out before the knob is fully rotated, 
+      // increase this number (e.g., to 1023.0 or 4095.0).
+      const double maxRawSensorValue = 255.0; 
+      const double maxDisplaySpeed = 199.0;
+
+      // 2. Map the raw sensor rotation to the 0 - 199 display limit
+      double scaledSpeed = (rawValue / maxRawSensorValue) * maxDisplaySpeed;
+
+      // 3. Clamp the speed just to be completely safe
+      scaledSpeed = scaledSpeed.clamp(0.0, maxDisplaySpeed);
+
+      // Pass the scaled value to our smoothing function
+      _updateSpeed(scaledSpeed);
     }
   }
 
@@ -373,7 +387,13 @@ class _DashboardView extends StatelessWidget {
   }
 
   Widget _speedCluster() {
+    // Pad to exactly 3 characters so we always have hundreds, tens, and units
     final speedText = speed.toString().padLeft(3, '0');
+    
+    // Extract individual digits
+    final digit1 = speedText[0];
+    final digit2 = speedText[1];
+    final digit3 = speedText[2];
 
     return Positioned(
       left: 110,
@@ -402,12 +422,21 @@ class _DashboardView extends StatelessWidget {
             ),
             const SizedBox(width: 18),
 
-            /// SPEED
-            _metallicText(
-              speedText,
-              fontSize: 170,
-              fontWeight: FontWeight.w600,
-              skew: -0.15,
+            /// SPEED (Locked Fixed-Width Box)
+            SizedBox(
+              width: 380,
+              // Fixed height stops the text from jumping up and down
+              height: 180, 
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Each digit gets its own exact-width box
+                  _singleDigitBox(digit1),
+                  _singleDigitBox(digit2),
+                  _singleDigitBox(digit3),
+                ],
+              ),
             ),
 
             const SizedBox(width: 8),
@@ -426,6 +455,21 @@ class _DashboardView extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Helper widget to lock a single digit into a specific width
+  Widget _singleDigitBox(String digit) {
+    return SizedBox(
+      width: 120, // Forces every digit, even a '1', to take up exactly 120 pixels
+      child: Center(
+        child: _metallicText(
+          digit,
+          fontSize: 170,
+          fontWeight: FontWeight.w600,
+          skew: -0.15,
         ),
       ),
     );
@@ -457,15 +501,15 @@ class _DashboardView extends StatelessWidget {
         blendMode: BlendMode.srcIn,
         child: Text(
           text,
+          // Remove baseline alignment issues by setting text height to exactly 1.0
           style: TextStyle(
             fontFamily: 'Orbitron',
             color: Colors.white,
             fontSize: fontSize,
             fontWeight: fontWeight,
             fontStyle: FontStyle.italic,
-            letterSpacing: 3,
-            height: 0.9,
-            // Forces the font to use tabular (monospaced) numerals to prevent shrinking
+            letterSpacing: 0, // Removed letter spacing as digits are now in separate boxes
+            height: 1.0,      // Crucial: locks the vertical bounding box
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
